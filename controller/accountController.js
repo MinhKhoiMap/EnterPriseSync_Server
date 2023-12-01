@@ -1,4 +1,10 @@
-const userModel = require("../models/accountModel");
+const jwt = require("jsonwebtoken");
+
+const accountModel = require("../models/accountModel");
+const enterpriseModel = require("../models/enterpriseModel");
+const adminModel = require("../models/adminModel");
+const roleModel = require("../models/roleModel");
+
 const { getBodyData } = require("../utils/getBodyData");
 const checkUsernameExisted = require("../middlewares/checkUsernameExisted");
 const passwordStrengthChecker = require("../utils/checkStrengthPassword");
@@ -8,9 +14,11 @@ const checkAuth = require("../middlewares/checkAuthentication");
 // @route   GET /api/users
 async function getAllUser(req, res) {
   const authInfo = checkAuth(req, res);
-  
+
+  // console.log(authInfo)
+
   try {
-    const users = await userModel.findAll();
+    const users = await accountModel.findAll();
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ data: users.recordset }));
@@ -26,17 +34,52 @@ async function getAllUser(req, res) {
 // @desc    Get User By Id
 // @route   GET /api/users/:id
 async function getUserById(req, res) {
-  const id = req.url.split("/")[3];
+  const url = new URL(`${process.env.SERVER_DOMAIN}${req.url}`);
+  const id = url.pathname.split("/")[3];
+
   try {
-    const user = await userModel.findById(id);
+    const responseRole = await roleModel.findById(req.user.role);
+    const role = responseRole.recordset[0].tbl_integrate;
+    const responseUser = await accountModel.findUserInfoById(id, role);
+    let user = responseUser.recordset[0];
+
+    console.log(responseUser, responseUser.recordset[0].id_user);
 
     if (user) {
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ data: user.recordset }));
+      res.end(JSON.stringify({ data: user }));
     } else {
       // res.writeHead(404, { "Content-Type": "application/json" });
       // res.end(JSON.stringify({ message: "User not found" }));
       throw [new Error("User not found"), new Error(404)];
+    }
+  } catch (error) {
+    console.log(error, "loi r");
+    res.writeHead(error[1]?.message || 500, {
+      "Content-Type": "application/json",
+    });
+    res.end(JSON.stringify({ message: error[0].message }));
+  }
+}
+
+async function handleLogin(req, res) {
+  let body = await getBodyData(req);
+  const { username, password } = JSON.parse(body);
+
+  try {
+    const responseAccount = await accountModel.findByUsername(username);
+    const account = responseAccount.recordset[0];
+    console.log(account, responseAccount);
+    if (username === account.username && password === account.password) {
+      const userToken = jwt.sign(
+        { id_user: account.id_user, role: account.role },
+        process.env.SECRET_KEY_TOKEN
+      );
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ userToken }));
+    } else {
+      throw [new Error("Username or Password wrong"), new Error(401)];
     }
   } catch (error) {
     console.log(error, "loi r");
@@ -63,9 +106,10 @@ async function createUser(req, res) {
     const isExisted = await checkUsernameExisted(username);
 
     if (!isExisted) {
-      const documentInserted = await userModel.insert(document);
+      // await enterpriseModel.create({ hh: "hh" }, role);
+      const documentInserted = await accountModel.insert(document);
       res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ data: documentInserted }));
+      res.end(JSON.stringify({ data: document }));
     } else {
       throw [new Error("Account already exists"), new Error(400)];
     }
@@ -74,7 +118,7 @@ async function createUser(req, res) {
     res.writeHead(error[1]?.message || 500, {
       "Content-Type": "application/json",
     });
-    res.end(JSON.stringify({ message: error[0].message }));
+    res.end(JSON.stringify({ message: error[0]?.message || error.message }));
   }
 }
 
@@ -91,7 +135,7 @@ async function updateUserField(req, res) {
       if (field === "password" && !passwordStrengthChecker(body[field].trim()))
         throw new Error("Password is not enough strength");
 
-      const respone = await userModel.updateField(id, field, body[field]);
+      const respone = await accountModel.updateField(id, field, body[field]);
       console.log(respone);
       if (respone.rowsAffected[0] > 0) {
         res.writeHead(200, { "Content-Type": "application/json" });
@@ -109,9 +153,32 @@ async function updateUserField(req, res) {
   }
 }
 
+async function deleteUser(req, res) {
+  try {
+    let id = req.url.split("/")[3];
+    const response = await accountModel.deleteDocument(id);
+    console.log(response);
+
+    if (response.rowsAffected[0] > 0) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ data: response }));
+    } else {
+      throw [new Error("User not found"), new Error(404)];
+    }
+  } catch (error) {
+    console.log(error, "loi r");
+    res.writeHead(error[1]?.message || 500, {
+      "Content-Type": "application/json",
+    });
+    res.end(JSON.stringify({ message: error[0].message }));
+  }
+}
+
 module.exports = {
   getAllUser,
   getUserById,
+  handleLogin,
   createUser,
   updateUserField,
+  deleteUser,
 };

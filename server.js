@@ -1,20 +1,16 @@
 const http = require("http");
-const { connectDB, sql } = require("./utils/connect");
-const {
-  getAllUser,
-  getUserById,
-  createUser,
-  updateUserField,
-} = require("./controller/accountController");
+const accountController = require("./controller/accountController");
+
+const checkAuthentication = require("./middlewares/checkAuthentication");
 
 const server = http.createServer((req, res) => {
   if (req.url === "/api/users") {
     switch (req.method) {
       case "GET":
-        getAllUser(req, res);
+        accountController.getAllUser(req, res);
         break;
       case "POST":
-        createUser(req, res);
+        accountController.createUser(req, res);
         break;
       default:
         res.writeHead(404, { "Content-Type": "application/json" });
@@ -23,15 +19,21 @@ const server = http.createServer((req, res) => {
   } else if (req.url.match(/\/api\/users\/([a-zA-Z0-9]+)/)) {
     switch (req.method) {
       case "GET":
-        getUserById(req, res);
+        checkAuthentication(req, res);
+        accountController.getUserById(req, res);
         break;
       case "PUT":
-        updateUserField(req, res);
+        accountController.updateUserField(req, res);
+        break;
+      case "DELETE":
+        accountController.deleteUser(req, res);
         break;
       default:
         res.writeHead(404, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ message: "Route not found" }));
     }
+  } else if (req.url === "/api/login" && req.method === "POST") {
+    accountController.handleLogin(req, res);
   } else {
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ message: "Route not found" }));

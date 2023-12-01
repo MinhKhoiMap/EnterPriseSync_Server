@@ -18,7 +18,18 @@ async function findByUsername(username) {
   let pool = await connectDB;
   return pool
     .request()
-    .query(`select username from tbl_user where username = '${username}'`);
+    .input("username", sql.VarChar(100), username)
+    .query(`select * from tbl_user where username = @username`);
+}
+
+async function findUserInfoById(id, tbl) {
+  let pool = await connectDB;
+  return pool
+    .request()
+    .input("id_user", sql.VarChar(10), id)
+    .query(
+      `select tbl_${tbl}.*, role  from tbl_user left join tbl_${tbl} on tbl_user.id_user = tbl_${tbl}.id_user where tbl_user.id_user = @id_user`
+    );
 }
 
 async function insert(document) {
@@ -49,10 +60,21 @@ async function updateField(id, field, updateValue) {
     .query(`update tbl_user set ${field} = @value where id_user = @id_user`);
 }
 
+async function deleteDocument(id) {
+  let pool = await connectDB;
+
+  return pool
+    .request()
+    .input("id", sql.VarChar(10), id)
+    .query(`delete from tbl_user where id_user = @id`);
+}
+
 module.exports = {
   findAll,
   findById,
   findByUsername,
+  findUserInfoById,
   insert,
   updateField,
+  deleteDocument,
 };
