@@ -54,10 +54,6 @@ const server = http.createServer((req, res) => {
     accountController.handleLogin(req, res);
   } else if (req.url === "/api/orders") {
     switch (req.method) {
-      case "GET":
-        req.user = checkAuth(req, res);
-        orderController.getAllOrder(req, res);
-        break;
       case "POST":
         req.user = checkAuth(req, res);
         orderController.createOrder(req, res);
@@ -66,6 +62,14 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ message: "Route not found" }));
     }
+  } else if (
+    req.url.match(
+      /\/api\/orders\?([\w-]+(=[\w.\-:%+]*)?(&[\w-]+(=[\w.\-:%+]*)?)*)?$/
+    ) &&
+    req.method === "GET"
+  ) {
+    req.user = checkAuth(req, res);
+    orderController.getAllOrder(req, res);
   } else if (req.url.match(/\/api\/orders\/([a-zA-Z0-9]+)/)) {
     switch (req.method) {
       case "GET":

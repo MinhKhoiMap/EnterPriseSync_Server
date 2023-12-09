@@ -2,10 +2,10 @@ const sql = require("mssql/msnodesqlv8");
 
 // config info to connect database
 var config = {
-  server: "KHOIMAPMAP\\MINKOITHOCHIEN",
-  user: "sa",
-  password: "1234",
-  database: "EnterpriseSync",
+  server: process.env.DB_SERVER_NAME,
+  user: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   driver: "msnodesqlv8",
   options: {
     trustedConnection: true,

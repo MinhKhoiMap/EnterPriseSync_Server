@@ -1,6 +1,8 @@
 const sql = require("mssql/msnodesqlv8");
 
 class OrderModel {
+  numPerPage = 8;
+  startPage = 1;
   total_price = 0;
   constructor(
     id_order,
@@ -28,11 +30,24 @@ class OrderModel {
     this.orderDetail.push(orderDetail);
   }
 
-  findAll(pool) {
+  countTotal(pool) {
     return pool
       .request()
       .input("id_enterprise", sql.VarChar(10), this.id_enterprise)
-      .query(`select * from tbl_order where id_enterprise = @id_enterprise`);
+      .query(
+        `select count(*) as total_page from tbl_order where id_enterprise = @id_enterprise`
+      );
+  }
+
+  findAll(pool, page) {
+    return pool
+      .request()
+      .input("id_enterprise", sql.VarChar(10), this.id_enterprise)
+      .input("startPage", sql.Int, page * this.numPerPage + 1)
+      .input("numPerPage", sql.Int, this.numPerPage)
+      .query(`select * from tbl_order where id_enterprise = @id_enterprise
+              order by order_date OFFSET @startPage ROWS
+                FETCH NEXT @numPerPage ROWS ONLY`);
   }
 
   findById(pool) {

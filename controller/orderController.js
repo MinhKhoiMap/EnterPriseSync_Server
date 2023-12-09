@@ -14,7 +14,7 @@ const productModel = require("../models/productModel");
 const uid = new ShortUniqueId({ length: 10 });
 
 // @desc    Get All Order
-// @route   GET /api/orders
+// @route   GET /api/orders?page=
 async function getAllOrder(req, res) {
   if (req.user.role !== "EN")
     throw [
@@ -24,15 +24,22 @@ async function getAllOrder(req, res) {
   let pool = await connectDB;
   // console.log(new Date().toLocaleDateString());
 
+  let url = new URL(
+    `${process.env.SERVER_DOMAIN}:${process.env.PORT || 5000}${req.url}`
+  ).searchParams;
+
   try {
     let orderObj = new OrderModel();
     orderObj.id_enterprise = req.user.id_user;
-    const response = await orderObj.findAll(pool);
+    const response = await orderObj.findAll(pool, url.get("page"));
+
+    const pageRes = await orderObj.countTotal(pool);
 
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(
       JSON.stringify({
         data: response.recordset,
+        totalPage: pageRes.recordset[0].total_page,
       })
     );
   } catch (error) {
