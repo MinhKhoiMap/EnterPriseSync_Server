@@ -12,8 +12,10 @@ var config = {
   },
 };
 
+const conn = new sql.ConnectionPool(config);
+
 const connectDB = new sql.ConnectionPool(config, (err) =>
   err ? console.log(err) : console.log("Connect to database successfully")
 ).connect();
 
-module.exports = { connectDB };
+module.exports = { connectDB, conn };

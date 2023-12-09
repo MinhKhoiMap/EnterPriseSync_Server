@@ -1,21 +1,39 @@
 const sql = require("mssql/msnodesqlv8");
-const ShortUniqueId = require("short-unique-id");
-const { connectDB } = require("../utils/connect");
+const AccountModel = require("./accountModel");
 
-const uid = new ShortUniqueId({ length: 10 });
+class EnterpriseModel {
+  constructor(id_user, enterprise_name) {
+    this.id_user = id_user;
+    this.enterprise_name = enterprise_name;
+  }
 
-async function create(enterpriseName) {
-  let pool = await connectDB;
+  findById(pool) {
+    return pool
+      .request()
+      .input("id_user", sql.VarChar(10), this.id_user)
+      .query(`select * from tbl_enterprise where id_user = @id_user`);
+  }
 
-  return pool
-    .request()
-    .input("id_user", sql.VarChar(10), uid.rnd())
-    .input("enterprise_name", sql.NVarChar(200), enterpriseName)
-    .query(
-      `insert into tbl_enterprise (id_user, enterprise_name) values (@id_user, @enterprise_name)`
-    );
+  insert(pool) {
+    if (this.id_user && this.enterprise_name) {
+      return pool
+        .request()
+        .input("id_user", sql.VarChar(10), this.id_user)
+        .input("enterprise_name", sql.NVarChar(200), this.enterprise_name)
+        .query(
+          `insert into tbl_enterprise (id_user, enterprise_name) values (@id_user, @enterprise_name)`
+        );
+    } else {
+      throw [new Error("Invalid Enterprise name"), new Error(400)];
+    }
+  }
+
+  deleteDocument(pool) {
+    return pool
+      .request()
+      .input("id_user", sql.VarChar(10), this.id_user)
+      .query(`delete from tbl_enterprise where id_user = @id_user`);
+  }
 }
 
-module.exports = {
-  create,
-};
+module.exports = EnterpriseModel;

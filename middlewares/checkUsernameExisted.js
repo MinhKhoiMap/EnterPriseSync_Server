@@ -1,8 +1,14 @@
-const userModel = require("../models/accountModel");
+const { connectDB } = require("../utils/connect");
+
+const AccountModel = require("../models/accountModel");
 
 async function checkUsernameExisted(username) {
-  const listUsers = await userModel.findByUsername(username);
-    console.log(listUsers, "listUser");
+  let pool = await connectDB;
+
+  let accountObj = new AccountModel(username);
+
+  const listUsers = await accountObj.findByUsername(pool);
+
   if (listUsers.recordset.length > 0) {
     return true;
   }

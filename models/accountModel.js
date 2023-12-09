@@ -1,80 +1,73 @@
 const sql = require("mssql/msnodesqlv8");
-const ShortUniqueId = require("short-unique-id");
-const { connectDB } = require("../utils/connect");
 
-const uid = new ShortUniqueId({ length: 10 });
+class AccountModel {
+  constructor(username, password, role, id_user, detailInfo, tbl) {
+    this.username = username;
+    this.password = password;
+    this.role = role;
+    this.id_user = id_user;
+    this.detailInfo = detailInfo;
+    this.tbl = tbl;
+  }
 
-async function findAll() {
-  let pool = await connectDB;
-  return pool.request().query("select * from tbl_user");
-}
+  findAll(pool) {
+    return pool.request().query("select * from tbl_user");
+  }
 
-async function findById(id) {
-  let pool = await connectDB;
-  return pool.request().query(`select * from tbl_user where id_user = '${id}'`);
-}
-
-async function findByUsername(username) {
-  let pool = await connectDB;
-  return pool
-    .request()
-    .input("username", sql.VarChar(100), username)
-    .query(`select * from tbl_user where username = @username`);
-}
-
-async function findUserInfoById(id, tbl) {
-  let pool = await connectDB;
-  return pool
-    .request()
-    .input("id_user", sql.VarChar(10), id)
-    .query(
-      `select tbl_${tbl}.*, role  from tbl_user left join tbl_${tbl} on tbl_user.id_user = tbl_${tbl}.id_user where tbl_user.id_user = @id_user`
-    );
-}
-
-async function insert(document) {
-  let pool = await connectDB;
-
-  if (document.username && document.password && document.role) {
+  findById(pool) {
     return pool
       .request()
-      .input("id_user", sql.VarChar(10), uid.rnd())
-      .input("username", sql.VarChar(100), document.username)
-      .input("password", sql.VarChar(100), document.password)
-      .input("role", sql.VarChar(10), document.role)
+      .query(`select * from tbl_user where id_user = '${this.id}'`);
+  }
+
+  findByUsername(pool) {
+    return pool
+      .request()
+      .input("username", sql.VarChar(100), this.username)
+      .query(`select * from tbl_user where username = @username`);
+  }
+
+  findUserInfoById(pool) {
+    return pool
+      .request()
+      .input("id_user", sql.VarChar(10), this.id_user)
       .query(
-        `insert into tbl_user (id_user, username, password, role) values(@id_user, @username, @password, @role)`
+        `select tbl_${this.tbl}.*, role from 
+            tbl_user left join tbl_${this.tbl} on tbl_user.id_user = tbl_${this.tbl}.id_user 
+            where tbl_user.id_user = @id_user`
       );
-  } else {
-    throw new Error("Invalid document user profile");
+  }
+
+  insert(pool) {
+    if (this.id_user && this.username && this.password && this.role) {
+      return pool
+        .request()
+        .input("id_user", sql.VarChar(10), this.id_user)
+        .input("username", sql.VarChar(100), this.username)
+        .input("password", sql.VarChar(100), this.password)
+        .input("role", sql.VarChar(10), this.role)
+        .query(
+          `insert into tbl_user (id_user, username, password, role) values(@id_user, @username, @password, @role)`
+        );
+    } else {
+      throw [new Error("Invalid document user profile"), new Error(400)];
+    }
+  }
+
+  updateField(pool, field, updateValue) {
+    return pool
+      .request()
+      .input("id_user", sql.VarChar(10), this.id)
+      .input("value", sql.VarChar, updateValue)
+      .query(`update tbl_user set ${field} = @value where id_user = @id_user`);
+  }
+
+  deleteDocument(pool) {
+    return pool
+      .request()
+      .input("id", sql.VarChar(10), this.id_user)
+      .query(`delete from tbl_user where id_user = @id`);
   }
 }
 
-async function updateField(id, field, updateValue) {
-  let pool = await connectDB;
-
-  return pool
-    .request()
-    .input("id_user", sql.VarChar(10), id)
-    .input("value", sql.VarChar, updateValue)
-    .query(`update tbl_user set ${field} = @value where id_user = @id_user`);
-}
-
-async function deleteDocument(id) {
-  let pool = await connectDB;
-
-  return pool
-    .request()
-    .input("id", sql.VarChar(10), id)
-    .query(`delete from tbl_user where id_user = @id`);
-}
-
-module.exports = {
-  findAll,
-  findById,
-  findByUsername,
-  findUserInfoById,
-  insert,
-  updateField,
-  deleteDocument,
-};
+module.exports = AccountModel;

@@ -1,29 +1,29 @@
 const sql = require("mssql/msnodesqlv8");
-const { connectDB } = require("../utils/connect");
 
-async function findById(id_role) {
-  let pool = await connectDB;
+class RoleModel {
+  constructor(id_role, explain, tbl_integrate) {
+    this.id_role = id_role;
+    this.explain = explain;
+    this.tbl_integrate = tbl_integrate;
+  }
 
-  return pool
-    .request()
-    .input("role", sql.VarChar(10), id_role)
-    .query(`select tbl_integrate from tbl_role where id_role = @role`);
+  findById(pool) {
+    return pool
+      .request()
+      .input("role", sql.VarChar(10), this.id_role)
+      .query(`select tbl_integrate from tbl_role where id_role = @role`);
+  }
+
+  insert(pool) {
+    return pool
+      .request()
+      .input("id_role", sql.VarChar(10), this.id_role)
+      .input("explain", sql.NVarChar(100), this.explain)
+      .input("integrate", sql.VarChar(100), this.tbl_integrate)
+      .query(
+        `insert into tbl_role (id_role, explain, tbl_integrate) values (@id_role, @explain, @integrate)`
+      );
+  }
 }
 
-async function insert(id_role, explain, tbl_integrate) {
-  let pool = await connectDB;
-
-  return pool
-    .request()
-    .input("id_role", sql.VarChar(10), id_role)
-    .input("explain", sql.NVarChar(100), explain)
-    .input("integrate", sql.VarChar(100), tbl_integrate)
-    .query(
-      `insert into tbl_role (id_role, explain, tbl_integrate) values (@id_role, @explain, @integrate)`
-    );
-}
-
-module.exports = {
-  findById,
-  insert,
-};
+module.exports = RoleModel;
